@@ -1,2 +1,44 @@
 ---
-# tasks file for ansible-role-skeleton/
+- name: Install Heimdall
+  become: true
+  tags: install
+  block:
+
+    - name: Create heimdall_config volume
+      docker_volume:
+        driver: "local"
+        driver_options:
+          type: nfs
+          o: "addr={{ nas }},nolock,soft,rw"
+          device: "{{ heimdall_config_nfs }}"
+        volume_name: heimdall_config
+
+    - name: Create Heimdall container
+      community.docker.docker_container:
+        name: heimdall
+        image: lscr.io/linuxserver/heimdall:latest
+        pull: true
+        restart_policy: unless-stopped
+        volumes:
+          - heimdall_config:/config
+        ports:
+          - 80:80
+          - 443:443
+        env:
+          TZ: Asia/Bangkok
+          PUID: "{{ heimdall_uid }}"
+          PGID: "{{ heimdall_gid }}"
+
+    - name: Allow HTTP
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: '80'
+      notify: reload ufw
+
+    - name: Allow HTTPS
+      community.general.ufw:
+        rule: allow
+        proto: tcp
+        port: '443'
+      notify: reload ufw
