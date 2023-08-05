@@ -21,24 +21,9 @@
         restart_policy: unless-stopped
         volumes:
           - heimdall_config:/config
-        ports:
-          - 80:80
-          - 443:443
+        networks:
+          - name: proxy_net
         env:
           TZ: Asia/Bangkok
           PUID: "{{ heimdall_uid }}"
           PGID: "{{ heimdall_gid }}"
-
-    - name: Allow HTTP
-      community.general.ufw:
-        rule: allow
-        proto: tcp
-        port: '80'
-      notify: reload ufw
-
-    - name: Allow HTTPS
-      community.general.ufw:
-        rule: allow
-        proto: tcp
-        port: '443'
-      notify: reload ufw
