@@ -27,3 +27,17 @@
           TZ: Asia/Bangkok
           PUID: "{{ heimdall_uid }}"
           PGID: "{{ heimdall_gid }}"
+
+    - name: Setup cron job to stop heimdall for backup
+      ansible.builtin.cron:
+        name: "Pause heimdall for backup"
+        hour: "4"
+        minute: "0"
+        job: "sudo docker stop heimdall"
+
+    - name: Setup cron job to start heimdall after backup
+      ansible.builtin.cron:
+        name: "Resume heimdall after backup"
+        hour: "5"
+        minute: "0"
+        job: "sudo docker start heimdall"
