@@ -4,14 +4,33 @@
   tags: install
   block:
 
-    - name: Create heimdall_config volume
-      docker_volume:
-        driver: "local"
-        driver_options:
-          type: nfs
-          o: "addr={{ nas }},nolock,soft,rw"
-          device: "{{ heimdall_config_nfs }}"
-        volume_name: heimdall_config
+    - name: Add heimdall group
+      ansible.builtin.group:
+        name: heimdall
+        state: present
+
+    - name: Add Ansible user to heimdall
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: heimdall
+        append: true
+
+    - name: Add heimdall user
+      ansible.builtin.user:
+        name: heimdall
+        group: heimdall
+
+    - name: Create heimdall config directory
+      ansible.builtin.file:
+        path: /home/heimdall/config
+        state: directory
+        mode: "770"
+        owner: heimdall
+        group: heimdall
+
+    - name: Instantiate passwd database
+      getent:
+        database: passwd
 
     - name: Create Heimdall container
       community.docker.docker_container:
@@ -20,24 +39,10 @@
         pull: true
         restart_policy: unless-stopped
         volumes:
-          - heimdall_config:/config
+          - /home/heimdall/config:/config
         networks:
           - name: proxy_net
         env:
           TZ: Asia/Bangkok
-          PUID: "{{ heimdall_uid }}"
-          PGID: "{{ heimdall_gid }}"
-
-    - name: Setup cron job to stop heimdall for backup
-      ansible.builtin.cron:
-        name: "Pause heimdall for backup"
-        hour: "4"
-        minute: "0"
-        job: "sudo docker stop heimdall"
-
-    - name: Setup cron job to start heimdall after backup
-      ansible.builtin.cron:
-        name: "Resume heimdall after backup"
-        hour: "5"
-        minute: "0"
-        job: "sudo docker start heimdall"
+          PUID: "{{ getent_passwd['heimdall'].1 }}"
+          PGID: "{{ getent_passwd['heimdall'].2 }}"
