@@ -9,12 +9,6 @@
         name: heimdall
         state: present
 
-    - name: Add Ansible user to heimdall
-      ansible.builtin.user:
-        name: "{{ user }}"
-        groups: heimdall
-        append: true
-
     - name: Add heimdall user
       ansible.builtin.user:
         name: heimdall
